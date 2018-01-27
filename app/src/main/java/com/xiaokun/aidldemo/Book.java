@@ -23,6 +23,14 @@ public class Book implements Parcelable
         this.bookName = bookName;
     }
 
+    @Override
+    public String toString()
+    {
+        return "Book{" +
+                "bookId=" + bookId +
+                ", bookName='" + bookName + '\'' +
+                '}';
+    }
 
     @Override
     public int describeContents()

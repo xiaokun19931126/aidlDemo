@@ -11,7 +11,9 @@ import android.os.RemoteException;
 import android.support.annotation.Nullable;
 import android.util.Log;
 
-import static com.xiaokun.aidldemo.MessengerActivityty.MSG_FROM_SERVICE;
+import java.util.concurrent.atomic.AtomicInteger;
+
+import static com.xiaokun.aidldemo.MessengerActivity.MSG_FROM_SERVICE;
 
 /**
  * <pre>
@@ -25,6 +27,7 @@ import static com.xiaokun.aidldemo.MessengerActivityty.MSG_FROM_SERVICE;
 public class MessengerService extends Service
 {
     public static final int MSG_FROM_CLENT = 0;
+    public static final AtomicInteger times = new AtomicInteger(0);
 
     private static class MessengerHandler extends Handler
     {
@@ -34,7 +37,8 @@ public class MessengerService extends Service
             switch (msg.what)
             {
                 case MSG_FROM_CLENT:
-                    Log.e("MessengerHandler", "handleMessage(MessengerHandler.java:32)" + msg.getData().getString("msg"));
+                    String clientMsg = msg.getData().getString("msg");
+                    Log.e("MessengerHandler", "handleMessage(MessengerHandler.java:32)" + clientMsg);
                     /**
                      * 如果希望服务端能够回复消息给客户端，那么msg.replyTo必须给其赋值Messenger
                      * 然后通过此Messenger给客户端发送msg
@@ -42,7 +46,19 @@ public class MessengerService extends Service
                     Messenger client = msg.replyTo;
                     Message replyMsg = Message.obtain(null, MSG_FROM_SERVICE);
                     Bundle data = new Bundle();
-                    data.putString("reply", "嗯，你的消息我已经收到。稍后会回复你");
+                    String serviceMsg = "";
+                    if (clientMsg.equals("肖坤帅吗"))
+                    {
+                        serviceMsg = "帅";
+                    } else if (!clientMsg.equals("肖坤帅吗") && times.get() < 2)
+                    {
+                        serviceMsg = "别的我也不知道哇";
+                    } else
+                    {
+                        serviceMsg = "再问自杀,我只知道肖坤很帅";
+                    }
+                    times.incrementAndGet();
+                    data.putString("reply", serviceMsg);
                     replyMsg.setData(data);
                     try
                     {

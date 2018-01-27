@@ -12,7 +12,12 @@ import android.os.Messenger;
 import android.os.RemoteException;
 import android.support.annotation.Nullable;
 import android.support.v7.app.AppCompatActivity;
+import android.text.TextUtils;
 import android.util.Log;
+import android.view.View;
+import android.widget.Button;
+import android.widget.EditText;
+import android.widget.Toast;
 
 import static com.xiaokun.aidldemo.MessengerService.MSG_FROM_CLENT;
 
@@ -21,14 +26,20 @@ import static com.xiaokun.aidldemo.MessengerService.MSG_FROM_CLENT;
  *     作者   : 肖坤
  *     时间   : 2018/01/26
  *     描述   : Messenger传信
- *              弊端：串行方式处理客户端发来的消息，如果大量的消息同时发送到服务端，就不行了。
+ *              弊端：
+ *                  1.串行方式处理客户端发来的消息，如果大量的消息同时发送到服务端，就不行了;
+ *                  2.无法RPC，远程调用服务端方法;
  *     版本   : 1.0
  * </pre>
  */
 
-public class MessengerActivityty extends AppCompatActivity
+public class MessengerActivity extends AppCompatActivity implements View.OnClickListener
 {
     public static final int MSG_FROM_SERVICE = 1;
+
+    private EditText mEditText;
+    private Button mSendBtn;
+    private EditText mEditTextFromService;
 
     //给服务端发送消息的Messenger
     private Messenger mService;
@@ -50,7 +61,12 @@ public class MessengerActivityty extends AppCompatActivity
             mService = new Messenger(iBinder);
             Message msg = Message.obtain(null, MSG_FROM_CLENT);
             Bundle data = new Bundle();
-            data.putString("msg", "hello , this is client");
+            if (TextUtils.isEmpty(clientMsg))
+            {
+                Toast.makeText(MessengerActivity.this, "消息不能为空", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            data.putString("msg", clientMsg);
             msg.setData(data);
             //消息的回复者赋值
             msg.replyTo = mGetReplyMessenger;
@@ -69,9 +85,13 @@ public class MessengerActivityty extends AppCompatActivity
 
         }
     };
+    private Intent intent;
+    private String clientMsg;
+    private MessengerHandler messengerHandler;
+    private Messenger mGetReplyMessenger;
 
 
-    private static class MessengerHandler extends Handler
+    private class MessengerHandler extends Handler
     {
 
         @Override
@@ -80,7 +100,10 @@ public class MessengerActivityty extends AppCompatActivity
             switch (msg.what)
             {
                 case MSG_FROM_SERVICE:
-                    Log.e("MessengerHandler", "handleMessage(MessengerHandler.java:79)" + msg.getData().getString("reply"));
+                    String serviceMsg = msg.getData().getString("reply");
+                    Log.e("MessengerHandler", "handleMessage(MessengerHandler.java:79)" + serviceMsg);
+                    mEditTextFromService.setText(serviceMsg);
+                    unbindService(mConnection);
                     break;
                 default:
                     super.handleMessage(msg);
@@ -89,21 +112,59 @@ public class MessengerActivityty extends AppCompatActivity
         }
     }
 
-    private Messenger mGetReplyMessenger = new Messenger(new MessengerHandler());
+//    private Messenger mGetReplyMessenger = new Messenger(messengerHandler);
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState)
     {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
-        Intent intent = new Intent(this, MessengerService.class);
+        setContentView(R.layout.activity_messenger);
+        messengerHandler = new MessengerHandler();
+        mGetReplyMessenger = new Messenger(messengerHandler);
+        intent = new Intent(this, MessengerService.class);
+        initView();
+    }
+
+    private void initView()
+    {
+        mEditText = (EditText) findViewById(R.id.edit_text);
+        mSendBtn = (Button) findViewById(R.id.send_btn);
+        mEditTextFromService = (EditText) findViewById(R.id.edit_text_from_service);
+        initListener(mSendBtn);
+    }
+
+    private void initListener(View... views)
+    {
+        for (View view : views)
+        {
+            view.setOnClickListener(this);
+        }
+    }
+
+    @Override
+    public void onClick(View view)
+    {
+        switch (view.getId())
+        {
+            case R.id.send_btn:
+                clientMsg = mEditText.getText().toString().trim();
+                sendMsg();
+                break;
+            default:
+                break;
+        }
+    }
+
+    private void sendMsg()
+    {
         bindService(intent, mConnection, Context.BIND_AUTO_CREATE);
     }
 
     @Override
     protected void onDestroy()
     {
-        unbindService(mConnection);
+//        unbindService(mConnection);
+        messengerHandler.removeCallbacksAndMessages(null);
         super.onDestroy();
     }
 }
