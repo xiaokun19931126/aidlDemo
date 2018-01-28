@@ -6,6 +6,12 @@ import android.support.v7.app.AppCompatActivity;
 import android.view.View;
 import android.widget.Button;
 
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+
 public class MainActivity extends AppCompatActivity implements View.OnClickListener
 {
     //快捷键 logt
@@ -53,5 +59,19 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }
     }
 
+    private void serialization() throws IOException, ClassNotFoundException
+    {
+        //序列化过程
+        User user = new User(0, "xiaokun", true);
+        FileOutputStream fileOutputStream = new FileOutputStream("cache.txt");
+        ObjectOutputStream out = new ObjectOutputStream(fileOutputStream);
+        out.writeObject(user);
+        out.close();
+
+        //反序列化过程
+        ObjectInputStream in = new ObjectInputStream(new FileInputStream("cache.txt"));
+        User newUser = (User) in.readObject();
+        in.close();
+    }
 
 }
